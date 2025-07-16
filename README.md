@@ -1,5 +1,3 @@
-# Dataset Download
-
-The datasets are too large to include in this repo.  
-Please download the data from Google Drive here:  
+**Updated on [date]:** Added two new folders to the dataset.  
+Please download the updated dataset folder from Google Drive:  
 [Download Dataset Folder](https://drive.google.com/drive/folders/1DQZldV_rjKMpLmB7TwFqWlja3T7mjQKz?usp=drive_link)
