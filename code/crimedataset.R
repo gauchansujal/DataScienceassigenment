@@ -175,4 +175,68 @@ ggplot(robbery_data, aes(x = "", y = RobberyCount, fill = district)) +
   labs(title = "Robbery Rate by District – South Yorkshire (May 2022)", fill = "District") +
   geom_text(aes(label = percent(percent)), 
             position = position_stack(vjust = 0.5), size = 4)
+# Load libraries
+library(tidyverse)
 
+# Assume clean_crime_data is already loaded and cleaned
+
+# 1. Create uniform data model (select and rename columns if needed)
+crime_data_model <- clean_crime_data %>%
+  select(County, Year, district, `Crime type`) %>%
+  mutate(
+    County = str_to_title(County),
+    district = str_to_title(district),
+    `Crime type` = str_to_title(`Crime type`)
+  )
+
+# 2. Exploratory Data Analysis (EDA)
+# Summary statistics
+summary(crime_data_model)
+
+# Count crimes by County and Year (trend)
+crime_by_county_year <- crime_data_model %>%
+  group_by(County, Year) %>%
+  summarise(TotalCrimes = n(), .groups = 'drop')
+
+# View top crime types per County
+top_crime_types <- crime_data_model %>%
+  group_by(County, `Crime type`) %>%
+  summarise(CrimeCount = n(), .groups = 'drop') %>%
+  arrange(County, desc(CrimeCount))
+
+# Crime counts by district
+crime_by_district <- crime_data_model %>%
+  group_by(County, district) %>%
+  summarise(TotalCrimes = n(), .groups = 'drop') %>%
+  arrange(desc(TotalCrimes))
+
+# 3. Investigate statistical relationships
+# Example: Correlation between Drug Crimes and Total Crimes per district
+drug_crime_rate <- crime_data_model %>%
+  filter(`Crime type` == "Drugs") %>%
+  group_by(County, district) %>%
+  summarise(DrugCrimes = n(), .groups = 'drop')
+
+total_crime_rate <- crime_data_model %>%
+  group_by(County, district) %>%
+  summarise(TotalCrimes = n(), .groups = 'drop')
+
+crime_rates_combined <- left_join(total_crime_rate, drug_crime_rate, by = c("County", "district")) %>%
+  replace_na(list(DrugCrimes = 0))
+
+correlation <- cor(crime_rates_combined$TotalCrimes, crime_rates_combined$DrugCrimes)
+print(paste("Correlation between Total Crimes and Drug Crimes:", round(correlation, 3)))
+
+# 4. Build a simple recommendation system based on Drug Crime Score (lower drug crime → higher score)
+crime_rates_combined <- crime_rates_combined %>%
+  mutate(DrugCrimeScore = 1 - (DrugCrimes - min(DrugCrimes)) / (max(DrugCrimes) - min(DrugCrimes)))
+
+# View safest districts based on Drug Crime Score
+top_safe_districts <- crime_rates_combined %>%
+  arrange(desc(DrugCrimeScore))
+
+# 5. Save recommendation table
+write_csv(top_safe_districts, "Cleaned Data/drugCrimeRecommendation.csv")
+
+# Optional: View top safe districts
+print(head(top_safe_districts, 10))
